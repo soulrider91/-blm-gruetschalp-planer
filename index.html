@@ -41,7 +41,7 @@ td select{width:100%;min-height:28px;padding:2px 3px;border-radius:6px;font-size
 </style>
 </head>
 <body>
-<header><h1>BLM Grütschalp – Monatsplaner</h1><div class="sub">Privacy v0.2 · Personaldaten nur lokal auf diesem Gerät</div></header>
+<header><h1>BLM Grütschalp – Monatsplaner</h1><div class="sub">Privacy v0.3 · Personaldaten nur lokal auf diesem Gerät</div></header>
 <main>
 <div class="notice good"><b>Datenschutz:</b> Im Quellcode sind keine Mitarbeitendennamen oder Qualifikationen hinterlegt. Deine Daten werden nur lokal im Browser gespeichert. Erstelle regelmässig ein Backup.</div>
 <div class="notice">AZG/AZGV ist noch nicht vollständig automatisiert. Der erzeugte Monatsplan bleibt ein Entwurf und muss vor der Übernahme ins offizielle System geprüft werden.</div>
@@ -100,27 +100,30 @@ td select{width:100%;min-height:28px;padding:2px 3px;border-radius:6px;font-size
 </div></section>
 
 <section id="rules" class="tab"><div class="panel">
-<h2>Schichten & Grundlogik</h2>
-<div class="formgrid">
-<div><b>Täglich automatisch</b><p class="small">Frühkabine, Spätkabine, Schalter Lauterbrunnen, Schalter Mürren, 4G, 5G, 6G, FDN1, FDN2, FDN3.</p></div>
-<div><b>Wochenende zusätzlich</b><p class="small">1 Wärter Lauterbrunnen + 1 Wärter Mürren pro Samstag/Sonntag.</p></div>
-<div><b>Manuell vorab</b><p class="small">US, Werkstatt, Büro, Reinigung, Küche, Güter, Schule und weitere Spezialdienste.</p></div>
-<div><b>Dienstfolge</b><p class="small">FDN1 → am Folgetag FDN2 für dieselbe Person. Spät → Früh wird möglichst vermieden.</p></div>
-</div><div id="shiftList"></div></div></section>
+<h2>Schichten & Regeln</h2>
+<p class="hint">Für jede Schicht kannst du einstellen: Manuell, täglich, Mo–Fr oder Sa/So sowie die benötigte Personenzahl.</p>
+<div class="notice good"><b>Standard v0.3:</b> ABL, BL, L42, L43, Küche und Reinigung täglich; Güter Mürren Mo–Fr. Die bisherigen Pflichtdienste bleiben automatisch.</div>
+<div id="scheduleRules"></div>
+<div class="toolbar"><button id="saveRules">Regeln speichern</button><button id="resetRules" class="secondary">Standard wiederherstellen</button></div>
+<div><b>Dienstfolge</b><p class="small">FDN1 → Folgetag FDN2 für dieselbe Person. Spät → Früh wird möglichst vermieden. AZG/AZGV wird noch weiter ausgebaut.</p></div>
+<div id="shiftList"></div></div></section>
 </main>
 
 <script>
 const SHIFTS = [{"code": "FRÜHKABINE", "label": "Frühkabine", "start": "", "end": "", "required": "daily"}, {"code": "SPÄTKABINE", "label": "Spätkabine", "start": "", "end": "", "required": "daily"}, {"code": "SCHALTER_LB", "label": "Schalter Lauterbrunnen", "start": "", "end": "", "required": "daily"}, {"code": "SCHALTER_MU", "label": "Schalter Mürren", "start": "", "end": "", "required": "daily"}, {"code": "4G", "label": "4G", "start": "07:13", "end": "16:36", "required": "daily"}, {"code": "5G", "label": "5G", "start": "08:40", "end": "18:13", "required": "daily"}, {"code": "6G", "label": "6G", "start": "09:30", "end": "18:43", "required": "daily"}, {"code": "FDN1", "label": "Fahrdienst 1 / Übernachtung", "start": "11:09", "end": "20:50", "required": "daily"}, {"code": "FDN2", "label": "Fahrdienst 2", "start": "05:50", "end": "14:30", "required": "daily"}, {"code": "FDN3", "label": "Fahrdienst 3", "start": "09:10", "end": "18:45", "required": "daily"}, {"code": "WÄRTER_LB", "label": "Wochenend-Wärter Lauterbrunnen", "start": "", "end": "", "required": "weekend"}, {"code": "WÄRTER_MU", "label": "Wochenend-Wärter Mürren", "start": "", "end": "", "required": "weekend"}, {"code": "US", "label": "Unterhalt Strecke", "start": "", "end": "", "required": "manual"}, {"code": "WG", "label": "Werkstatt", "start": "07:06", "end": "15:43", "required": "manual"}, {"code": "BÜRO", "label": "Büro", "start": "08:06", "end": "16:43", "required": "manual"}, {"code": "ABL", "label": "ABL", "start": "11:43", "end": "20:40", "required": "manual"}, {"code": "BL", "label": "BL", "start": "05:55", "end": "14:43", "required": "manual"}, {"code": "L42", "label": "Güter Lauterbrunnen L42", "start": "05:45", "end": "15:45", "required": "manual"}, {"code": "L43", "label": "Güter Lauterbrunnen L43", "start": "08:00", "end": "17:25", "required": "manual"}, {"code": "GÜTER_MU", "label": "Güter Mürren", "start": "", "end": "", "required": "manual"}, {"code": "KÜCHE", "label": "Küche", "start": "", "end": "", "required": "manual"}, {"code": "REINIGUNG", "label": "Reinigung", "start": "", "end": "", "required": "manual"}, {"code": "SCHULE", "label": "Schule", "start": "", "end": "", "required": "manual"}];
-const STORE = {staff:"blm_staff_v02", month:"blm_month_v02", state:"blm_state_v02"};
+const STORE = {staff:"blm_staff_v02", month:"blm_month_v02", state:"blm_state_v02", rules:"blm_rules_v03"};
 let STAFF = loadJSON(STORE.staff, []);
 let state = loadJSON(STORE.state, {month:"",days:[],plan:{},prefs:{},fixed:{},blocked:{}});
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const byCode=Object.fromEntries(SHIFTS.map(s=>[s.code,s]));
-const daily=SHIFTS.filter(s=>s.required==="daily").map(s=>s.code);
-const weekend=SHIFTS.filter(s=>s.required==="weekend").map(s=>s.code);
+const DEFAULT_RULES=Object.fromEntries(SHIFTS.map(s=>[s.code,{mode:
+["ABL","BL","L42","L43","KÜCHE","REINIGUNG"].includes(s.code)?"daily":
+s.code==="GÜTER_MU"?"weekdays":s.required==="daily"?"daily":s.required==="weekend"?"weekend":"manual",count:1}]));
+let RULES=loadJSON(STORE.rules,DEFAULT_RULES);
+for(const s of SHIFTS) if(!RULES[s.code]) RULES[s.code]={...DEFAULT_RULES[s.code]};
 
 function loadJSON(k, fallback){try{const x=localStorage.getItem(k);return x?JSON.parse(x):fallback}catch{return fallback}}
-function persist(){localStorage.setItem(STORE.staff,JSON.stringify(STAFF));localStorage.setItem(STORE.state,JSON.stringify(state));if(state.month)localStorage.setItem(STORE.month,state.month)}
+function persist(){localStorage.setItem(STORE.staff,JSON.stringify(STAFF));localStorage.setItem(STORE.state,JSON.stringify(state));localStorage.setItem(STORE.rules,JSON.stringify(RULES));if(state.month)localStorage.setItem(STORE.month,state.month)}
 function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
 function isoDate(y,m,d){return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`}
 function buildDays(monthStr){const[y,m]=monthStr.split("-").map(Number);const n=new Date(Date.UTC(y,m,0)).getUTCDate();return Array.from({length:n},(_,i)=>{const d=i+1,date=new Date(Date.UTC(y,m-1,d)),wd=date.getUTCDay();return{date:isoDate(y,m,d),day:d,wd,weekend:wd===0||wd===6}})}
@@ -166,6 +169,18 @@ $("#cancelStaff").addEventListener("click",resetStaffForm)
 function renderShifts(){
  $("#shiftList").innerHTML=`<table style="margin-top:14px;width:100%;min-width:0"><thead><tr><th style="position:static">Schicht</th><th style="position:static">Zeit</th><th style="position:static">Typ</th></tr></thead><tbody>${SHIFTS.map(s=>`<tr><td>${esc(s.label)}</td><td>${esc(s.start||"–")}${s.end?"–"+esc(s.end):""}</td><td>${esc(s.required)}</td></tr>`).join("")}</tbody></table>`
 }
+function renderScheduleRules(){
+ const labels={manual:"Manuell",daily:"Täglich",weekdays:"Mo–Fr",weekend:"Sa/So"};
+ $("#scheduleRules").innerHTML=`<div class="schedulerWrap"><table style="width:100%;min-width:700px"><thead><tr><th style="position:static">Schicht</th><th style="position:static">Planung</th><th style="position:static">Anzahl</th></tr></thead><tbody>${SHIFTS.map(s=>{const r=RULES[s.code]||DEFAULT_RULES[s.code];return `<tr><td style="text-align:left">${esc(s.label)}</td><td><select class="ruleMode" data-code="${esc(s.code)}">${Object.entries(labels).map(([v,l])=>`<option value="${v}" ${r.mode===v?"selected":""}>${l}</option>`).join("")}</select></td><td><input class="ruleCount" data-code="${esc(s.code)}" type="number" min="1" max="9" value="${Number(r.count)||1}" style="width:70px"></td></tr>`}).join("")}</tbody></table></div>`;
+}
+function saveRulesFromUI(){
+ $$(".ruleMode").forEach(x=>{RULES[x.dataset.code]=RULES[x.dataset.code]||{};RULES[x.dataset.code].mode=x.value});
+ $$(".ruleCount").forEach(x=>{RULES[x.dataset.code]=RULES[x.dataset.code]||{};RULES[x.dataset.code].count=Math.max(1,Math.min(9,Number(x.value)||1))});
+ persist();renderScheduleRules();$("#status").textContent="Schichtregeln gespeichert.";
+}
+function requiredCodesForDay(d){
+ const out=[];for(const s of SHIFTS){const r=RULES[s.code]||DEFAULT_RULES[s.code];const on=r.mode==="daily"||(r.mode==="weekdays"&&d.wd>=1&&d.wd<=5)||(r.mode==="weekend"&&d.weekend);if(on)for(let i=0;i<(Number(r.count)||1);i++)out.push(s.code)}return out;
+}
 function modeOptions(p){const opts=["","FREI","GESPERRT",...(p.roles||[])];return[...new Set(opts)].map(v=>`<option value="${esc(v)}">${v===""?"—":esc(v)}</option>`).join("")}
 function renderPlan(){
  if(!state.days?.length){$("#tableWrap").innerHTML='<div class="notice">Bitte zuerst einen Monat laden.</div>';return}
@@ -191,14 +206,14 @@ function penalty(p,code,d){
  const idx=state.days.findIndex(x=>x.date===d.date);if(idx>0){const prev=get(p.name,state.days[idx-1].date);if(prev==="SPÄTKABINE"&&["FRÜHKABINE","FDN2","4G"].includes(code))score+=30}
  return score
 }
-function assign(code,d){if(assignedFor(code,d.date).length)return true;const ranked=activeStaffFor(d.date).filter(p=>canDo(p,code)).map(p=>[penalty(p,code,d),p]).filter(x=>x[0]<1e6).sort((a,b)=>a[0]-b[0]||a[1].name.localeCompare(b[1].name,"de"));if(!ranked.length)return false;setv(ranked[0][1].name,d.date,code);return true}
+function assign(code,d,targetOrdinal=1){if(assignedFor(code,d.date).length>=targetOrdinal)return true;const ranked=activeStaffFor(d.date).filter(p=>canDo(p,code)).map(p=>[penalty(p,code,d),p]).filter(x=>x[0]<1e6).sort((a,b)=>a[0]-b[0]||a[1].name.localeCompare(b[1].name,"de"));if(!ranked.length)return false;setv(ranked[0][1].name,d.date,code);return true}
 function autoPlan(){
  if(!state.days?.length)return;if(!STAFF.length){alert("Bitte zuerst Mitarbeiter erfassen.");return}
  for(const p of STAFF)for(const d of state.days){const k=key(p.name,d.date);if(!state.fixed[k])setv(p.name,d.date,"")}
  let issues=[];
  for(let i=0;i<state.days.length;i++){const d=state.days[i];
   if(i>0){const prev=state.days[i-1],prevFDN1=assignedFor("FDN1",prev.date)[0];if(prevFDN1){const p=STAFF.find(x=>x.name===prevFDN1),k=key(prevFDN1,d.date);if(p&&canDo(p,"FDN2")&&!state.prefs[k]&&!state.blocked[k]&&(!get(prevFDN1,d.date)||get(prevFDN1,d.date)==="FDN2"))setv(prevFDN1,d.date,"FDN2")}}
-  const req=[...daily,...(d.weekend?weekend:[])];for(const code of req)if(!assign(code,d))issues.push(`${d.date}: ${code} nicht besetzt`)
+  const req=requiredCodesForDay(d),seen={};for(const code of req){seen[code]=(seen[code]||0)+1;if(!assign(code,d,seen[code]))issues.push(`${d.date}: ${code} (${seen[code]}) nicht besetzt`)}
  }
  persist();renderPlan();$("#status").textContent=issues.length?"Plan erstellt mit offenen Punkten:\n"+issues.join("\n"):"Plan erstellt. Bitte fachlich und AZG/AZGV-seitig prüfen."
 }
@@ -214,15 +229,17 @@ function exportCSV(){
  const csv=rows.map(r=>r.map(x=>`"${String(x??"").replaceAll('"','""')}"`).join(";")).join("\n");downloadBlob(csv,`BLM_Monatsplan_${state.month}.csv`,"text/csv;charset=utf-8")
 }
 function downloadBlob(content,name,type){const blob=new Blob([content],{type}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500)}
-function exportBackup(){const data={app:"BLM Grütschalp Monatsplaner",version:"0.2",exportedAt:new Date().toISOString(),staff:STAFF,state};downloadBlob(JSON.stringify(data,null,2),`BLM_Backup_${new Date().toISOString().slice(0,10)}.json`,"application/json");$("#backupStatus").textContent="Backup exportiert. Datei privat aufbewahren und nicht ins öffentliche GitHub laden."}
-$("#backupImport").addEventListener("change",async e=>{const f=e.target.files[0];if(!f)return;try{const data=JSON.parse(await f.text());if(!Array.isArray(data.staff))throw new Error("Keine Mitarbeiterliste gefunden.");STAFF=data.staff;state=data.state||state;persist();renderStaff();renderPlan();$("#month").value=state.month||$("#month").value;$("#backupStatus").textContent=`Backup importiert: ${STAFF.length} Mitarbeiter.`}catch(err){alert("Backup konnte nicht importiert werden: "+err.message)}finally{e.target.value=""}})
+function exportBackup(){const data={app:"BLM Grütschalp Monatsplaner",version:"0.3",exportedAt:new Date().toISOString(),staff:STAFF,state,rules:RULES};downloadBlob(JSON.stringify(data,null,2),`BLM_Backup_${new Date().toISOString().slice(0,10)}.json`,"application/json");$("#backupStatus").textContent="Backup exportiert. Datei privat aufbewahren und nicht ins öffentliche GitHub laden."}
+$("#backupImport").addEventListener("change",async e=>{const f=e.target.files[0];if(!f)return;try{const data=JSON.parse(await f.text());if(!Array.isArray(data.staff))throw new Error("Keine Mitarbeiterliste gefunden.");STAFF=data.staff;state=data.state||state;RULES=data.rules||RULES;persist();renderStaff();renderScheduleRules();renderPlan();$("#month").value=state.month||$("#month").value;$("#backupStatus").textContent=`Backup importiert: ${STAFF.length} Mitarbeiter.`}catch(err){alert("Backup konnte nicht importiert werden: "+err.message)}finally{e.target.value=""}})
 $("#backupExport").addEventListener("click",exportBackup);
+$("#saveRules").addEventListener("click",saveRulesFromUI);
+$("#resetRules").addEventListener("click",()=>{if(confirm("Standardregeln wiederherstellen?")){RULES=JSON.parse(JSON.stringify(DEFAULT_RULES));persist();renderScheduleRules();}});
 $("#wipeLocal").addEventListener("click",()=>{if(!confirm("Wirklich alle lokal gespeicherten Mitarbeiter- und Planungsdaten löschen?"))return;Object.values(STORE).forEach(k=>localStorage.removeItem(k));STAFF=[];state={month:"",days:[],plan:{},prefs:{},fixed:{},blocked:{}};resetStaffForm();renderStaff();renderPlan();$("#backupStatus").textContent="Lokale Daten gelöscht."})
 
 $$(".tabs button").forEach(b=>b.addEventListener("click",()=>{$$(".tabs button").forEach(x=>x.classList.toggle("active",x===b));$$(".tab").forEach(t=>t.classList.toggle("active",t.id===b.dataset.tab))}));
 $("#build").addEventListener("click",loadMonth);$("#auto").addEventListener("click",autoPlan);$("#repair").addEventListener("click",autoPlan);$("#clear").addEventListener("click",clearPlan);$("#export").addEventListener("click",exportCSV);
 
-renderRolesGrid();renderStaff();renderShifts();
+renderRolesGrid();renderStaff();renderShifts();renderScheduleRules();
 const now=new Date(), defaultMonth=localStorage.getItem(STORE.month)||`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}`;$("#month").value=state.month||defaultMonth;
 if(state.month&&state.days?.length)renderPlan();else loadMonth();
 </script>
