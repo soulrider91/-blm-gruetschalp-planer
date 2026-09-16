@@ -41,15 +41,16 @@ td select{width:100%;min-height:28px;padding:2px 3px;border-radius:6px;font-size
 </style>
 </head>
 <body>
-<header><h1>BLM Grütschalp – Monatsplaner</h1><div class="sub">Privacy v0.3 · Personaldaten nur lokal auf diesem Gerät</div></header>
+<header><h1>BLM Grütschalp – Monatsplaner</h1><div class="sub">Privacy v0.5 · erweiterbare Dienste, Regeln & Dokumentation</div></header>
 <main>
 <div class="notice good"><b>Datenschutz:</b> Im Quellcode sind keine Mitarbeitendennamen oder Qualifikationen hinterlegt. Deine Daten werden nur lokal im Browser gespeichert. Erstelle regelmässig ein Backup.</div>
-<div class="notice">AZG/AZGV ist noch nicht vollständig automatisiert. Der erzeugte Monatsplan bleibt ein Entwurf und muss vor der Übernahme ins offizielle System geprüft werden.</div>
+<div class="notice">AZG/AZGV-Prüfung v0.5: Grundregeln aus den bereitgestellten Schulungsfolien sind als editierbares Regelwerk hinterlegt. Sonderfälle/Vereinbarungen bleiben prüfpflichtig.</div>
 <div class="tabs">
 <button class="active" data-tab="plan">Monatsplan</button>
 <button data-tab="staff">Mitarbeiter</button>
 <button data-tab="backup">Backup</button>
 <button data-tab="rules">Schichten & Regeln</button>
+<button data-tab="azg">AZG/AZGV</button>
 </div>
 
 <section id="plan" class="tab active">
@@ -102,28 +103,82 @@ td select{width:100%;min-height:28px;padding:2px 3px;border-radius:6px;font-size
 <section id="rules" class="tab"><div class="panel">
 <h2>Schichten & Regeln</h2>
 <p class="hint">Für jede Schicht kannst du einstellen: Manuell, täglich, Mo–Fr oder Sa/So sowie die benötigte Personenzahl.</p>
-<div class="notice good"><b>Standard v0.3:</b> ABL, BL, L42, L43, Küche und Reinigung täglich; Güter Mürren Mo–Fr. Die bisherigen Pflichtdienste bleiben automatisch.</div>
+<div class="notice good"><b>Standard:</b> ABL, BL, L42, L43, Küche und Reinigung täglich; Güter Mürren Mo–Fr. Die bisherigen Pflichtdienste bleiben automatisch.</div>
+<div class="panel" style="margin:14px 0">
+<h3>Schicht hinzufügen / bearbeiten</h3>
+<input id="shiftEditCode" type="hidden">
+<div class="formgrid">
+<label>Name der Schicht<input id="shiftName" placeholder="z.B. Spezial-Unterhalt"></label>
+<label>Startzeit<input id="shiftStart" type="time"></label>
+<label>Endzeit<input id="shiftEnd" type="time"></label>
+<label>Planung<select id="shiftMode"><option value="manual">Manuell</option><option value="daily">Täglich</option><option value="weekdays">Mo–Fr</option><option value="weekend">Sa/So</option></select></label>
+<label>Benötigte Personen<input id="shiftCount" type="number" min="1" max="9" value="1"></label>
+</div>
+<div class="toolbar"><button id="saveShift">Schicht speichern</button><button id="cancelShift" class="secondary">Neue Schicht</button></div>
+<p class="hint">Nach dem Hinzufügen erscheint die Schicht automatisch bei den Fähigkeiten der Mitarbeiter.</p>
+</div>
+<h3>Vorhandene Schichten</h3>
 <div id="scheduleRules"></div>
 <div class="toolbar"><button id="saveRules">Regeln speichern</button><button id="resetRules" class="secondary">Standard wiederherstellen</button></div>
 <div><b>Dienstfolge</b><p class="small">FDN1 → Folgetag FDN2 für dieselbe Person. Spät → Früh wird möglichst vermieden. AZG/AZGV wird noch weiter ausgebaut.</p></div>
 <div id="shiftList"></div></div></section>
+
+<section id="azg" class="tab"><div class="panel"><h2>AZG/AZGV – editierbares Regelwerk</h2>
+<p class="hint">Diese Einträge stammen aus deinen bereitgestellten Schulungsfolien. Du kannst Werte und Notizen jederzeit ändern. Die automatische Prüfung verwendet derzeit nur Regeln, die technisch eindeutig aus Dienstzeiten berechnet werden können.</p>
+<div class="formgrid">
+<label>Regelwerk-Version<input id="lawVersion" value="2026-09"></label>
+<label>Gültig ab<input id="lawValidFrom" type="date"></label>
+</div>
+<div id="lawRules"></div>
+<div class="toolbar"><button id="saveLawRules">AZG/AZGV-Regeln speichern</button><button id="addLawRule" class="secondary">Neue Regel hinzufügen</button></div>
+<h3>Dokumentation / Anhänge</h3><p class="hint">Anhänge werden nur lokal auf diesem Gerät gespeichert und nicht auf GitHub hochgeladen. Für grosse Dateien weiterhin das Original separat aufbewahren.</p>
+<label class="fileBtn">Anhang lokal hinzufügen<input id="attachmentInput" type="file" accept=".pdf,image/*,.doc,.docx"></label>
+<div id="attachmentList" class="staffList"></div>
+</div></section>
+
 </main>
 
 <script>
-const SHIFTS = [{"code": "FRÜHKABINE", "label": "Frühkabine", "start": "", "end": "", "required": "daily"}, {"code": "SPÄTKABINE", "label": "Spätkabine", "start": "", "end": "", "required": "daily"}, {"code": "SCHALTER_LB", "label": "Schalter Lauterbrunnen", "start": "", "end": "", "required": "daily"}, {"code": "SCHALTER_MU", "label": "Schalter Mürren", "start": "", "end": "", "required": "daily"}, {"code": "4G", "label": "4G", "start": "07:13", "end": "16:36", "required": "daily"}, {"code": "5G", "label": "5G", "start": "08:40", "end": "18:13", "required": "daily"}, {"code": "6G", "label": "6G", "start": "09:30", "end": "18:43", "required": "daily"}, {"code": "FDN1", "label": "Fahrdienst 1 / Übernachtung", "start": "11:09", "end": "20:50", "required": "daily"}, {"code": "FDN2", "label": "Fahrdienst 2", "start": "05:50", "end": "14:30", "required": "daily"}, {"code": "FDN3", "label": "Fahrdienst 3", "start": "09:10", "end": "18:45", "required": "daily"}, {"code": "WÄRTER_LB", "label": "Wochenend-Wärter Lauterbrunnen", "start": "", "end": "", "required": "weekend"}, {"code": "WÄRTER_MU", "label": "Wochenend-Wärter Mürren", "start": "", "end": "", "required": "weekend"}, {"code": "US", "label": "Unterhalt Strecke", "start": "", "end": "", "required": "manual"}, {"code": "WG", "label": "Werkstatt", "start": "07:06", "end": "15:43", "required": "manual"}, {"code": "BÜRO", "label": "Büro", "start": "08:06", "end": "16:43", "required": "manual"}, {"code": "ABL", "label": "ABL", "start": "11:43", "end": "20:40", "required": "manual"}, {"code": "BL", "label": "BL", "start": "05:55", "end": "14:43", "required": "manual"}, {"code": "L42", "label": "Güter Lauterbrunnen L42", "start": "05:45", "end": "15:45", "required": "manual"}, {"code": "L43", "label": "Güter Lauterbrunnen L43", "start": "08:00", "end": "17:25", "required": "manual"}, {"code": "GÜTER_MU", "label": "Güter Mürren", "start": "", "end": "", "required": "manual"}, {"code": "KÜCHE", "label": "Küche", "start": "", "end": "", "required": "manual"}, {"code": "REINIGUNG", "label": "Reinigung", "start": "", "end": "", "required": "manual"}, {"code": "SCHULE", "label": "Schule", "start": "", "end": "", "required": "manual"}];
+const BASE_SHIFTS = [{"code": "FRÜHKABINE", "label": "Frühkabine", "start": "", "end": "", "required": "daily"}, {"code": "SPÄTKABINE", "label": "Spätkabine", "start": "", "end": "", "required": "daily"}, {"code": "SCHALTER_LB", "label": "Schalter Lauterbrunnen", "start": "", "end": "", "required": "daily"}, {"code": "SCHALTER_MU", "label": "Schalter Mürren", "start": "", "end": "", "required": "daily"}, {"code": "4G", "label": "4G", "start": "07:13", "end": "16:36", "required": "daily"}, {"code": "5G", "label": "5G", "start": "08:40", "end": "18:13", "required": "daily"}, {"code": "6G", "label": "6G", "start": "09:30", "end": "18:43", "required": "daily"}, {"code": "FDN1", "label": "Fahrdienst 1 / Übernachtung", "start": "11:09", "end": "20:50", "required": "daily"}, {"code": "FDN2", "label": "Fahrdienst 2", "start": "05:50", "end": "14:30", "required": "daily"}, {"code": "FDN3", "label": "Fahrdienst 3", "start": "09:10", "end": "18:45", "required": "daily"}, {"code": "WÄRTER_LB", "label": "Wochenend-Wärter Lauterbrunnen", "start": "", "end": "", "required": "weekend"}, {"code": "WÄRTER_MU", "label": "Wochenend-Wärter Mürren", "start": "", "end": "", "required": "weekend"}, {"code": "US", "label": "Unterhalt Strecke", "start": "", "end": "", "required": "manual"}, {"code": "WG", "label": "Werkstatt", "start": "07:06", "end": "15:43", "required": "manual"}, {"code": "BÜRO", "label": "Büro", "start": "08:06", "end": "16:43", "required": "manual"}, {"code": "ABL", "label": "ABL", "start": "11:43", "end": "20:40", "required": "manual"}, {"code": "BL", "label": "BL", "start": "05:55", "end": "14:43", "required": "manual"}, {"code": "L42", "label": "Güter Lauterbrunnen L42", "start": "05:45", "end": "15:45", "required": "manual"}, {"code": "L43", "label": "Güter Lauterbrunnen L43", "start": "08:00", "end": "17:25", "required": "manual"}, {"code": "GÜTER_MU", "label": "Güter Mürren", "start": "", "end": "", "required": "manual"}, {"code": "KÜCHE", "label": "Küche", "start": "", "end": "", "required": "manual"}, {"code": "REINIGUNG", "label": "Reinigung", "start": "", "end": "", "required": "manual"}, {"code": "SCHULE", "label": "Schule", "start": "", "end": "", "required": "manual"}, {"code":"RT","label":"Ruhetag","start":"","end":"","required":"manual"}, {"code":"AGT","label":"Ausgleichstag","start":"","end":"","required":"manual"}];
+let SHIFTS = loadJSON("blm_shifts_v04", BASE_SHIFTS);
 const STORE = {staff:"blm_staff_v02", month:"blm_month_v02", state:"blm_state_v02", rules:"blm_rules_v03"};
 let STAFF = loadJSON(STORE.staff, []);
 let state = loadJSON(STORE.state, {month:"",days:[],plan:{},prefs:{},fixed:{},blocked:{}});
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
-const byCode=Object.fromEntries(SHIFTS.map(s=>[s.code,s]));
+function shiftByCode(code){return SHIFTS.find(s=>s.code===code)}
 const DEFAULT_RULES=Object.fromEntries(SHIFTS.map(s=>[s.code,{mode:
 ["ABL","BL","L42","L43","KÜCHE","REINIGUNG"].includes(s.code)?"daily":
 s.code==="GÜTER_MU"?"weekdays":s.required==="daily"?"daily":s.required==="weekend"?"weekend":"manual",count:1}]));
 let RULES=loadJSON(STORE.rules,DEFAULT_RULES);
-for(const s of SHIFTS) if(!RULES[s.code]) RULES[s.code]={...DEFAULT_RULES[s.code]};
+for(const s of SHIFTS) if(!RULES[s.code]) RULES[s.code]={...(DEFAULT_RULES[s.code]||{mode:"manual",count:1})};
+
+const LAW_STORE="blm_law_rules_v05", ATT_STORE="blm_attachments_v05";
+let LAW=loadJSON(LAW_STORE,{version:"2026-09",validFrom:"",rules:[
+ {id:"service_types",title:"Definition Dienste (AZGV Art. 25)",value:"Frühdienst 04:00–06:00 Beginn; Mitteldienst vollständig 06:00–20:00; Spätdienst Ende 20:00–24:00; Nachtdienst ganz/teilweise 24:00–04:00",enabled:true,auto:false},
+ {id:"rest_shift_avg",title:"Ruheschicht (AZG Art. 8)",value:"Zwischen zwei Dienstschichten; im Durchschnitt von 28 Tagen mindestens 12 Stunden.",enabled:true,auto:true},
+ {id:"rest_shift_11",title:"Ruheschicht 11 h",value:"Zwischen zwei dienstfreien Tagen kann sie einmal auf 11 Stunden herabgesetzt werden.",enabled:true,auto:false},
+ {id:"rest_shift_9",title:"Ruheschicht 9 h mit Vereinbarung",value:"Bei besonderen Verhältnissen mit Vereinbarung bis 9 Stunden; zusammen mit den nächsten 2 Ruheschichten im Durchschnitt mindestens 12 Stunden; Ausgleich in der Regel vor dem nächsten dienstfreien Tag.",enabled:true,auto:false},
+ {id:"ruhezeit_arg",title:"Tägliche Ruhezeit (ArG Art. 15a – Schulungsfolie)",value:"Mindestens 11 aufeinanderfolgende Stunden; für Erwachsene einmal pro Woche bis 8 Stunden, sofern 11 Stunden im Durchschnitt von 2 Wochen eingehalten werden.",enabled:true,auto:false},
+ {id:"ruhetag",title:"Ruhetage (AZG Art. 10)",value:"63 Ruhetage pro Jahr; 24 aufeinanderfolgende Stunden; 12 Stunden Ruhezeit davor; höchstens 13 Tage ohne Ruhetag.",enabled:true,auto:true},
+ {id:"agt",title:"Ausgleichstag (AZG Art. 4c / AZGV Art. 8)",value:"Tag ohne Dienst; in der Regel zusammen mit einem Ruhetag; grundsätzlich 24 Stunden; mit Vereinbarung im Zusammenhang mit RT mindestens 22 Stunden.",enabled:true,auto:false},
+ {id:"sunday",title:"Ruhesonntage (AZGV Art. 19)",value:"Mindestens 20 Ruhetage/Jahr auf Sonntag; auf Ersuchen schriftlich auf 16 reduzierbar, dabei pro Monat ein freies Wochenende. Ferien-Sonntage/Feiertage gelten nicht als Ruhesonntage.",enabled:true,auto:false},
+ {id:"disruption",title:"Betriebsstörung / höhere Gewalt (AZGV Art. 18 Abs. 4)",value:"Mindestruheschicht darf bis auf 8 Stunden unterschritten werden; keine Vereinbarung erforderlich; Ausgleich über 28 Tage.",enabled:true,auto:false}
+]});
+let ATTACHMENTS=loadJSON(ATT_STORE,[]);
+function persistLaw(){localStorage.setItem(LAW_STORE,JSON.stringify(LAW));localStorage.setItem(ATT_STORE,JSON.stringify(ATTACHMENTS))}
+function renderLawRules(){
+ $("#lawVersion").value=LAW.version||"";$("#lawValidFrom").value=LAW.validFrom||"";
+ $("#lawRules").innerHTML=(LAW.rules||[]).map((r,i)=>`<div class="staffRow"><label><input class="lawEnabled" data-i="${i}" type="checkbox" ${r.enabled?'checked':''}> aktiv</label><input class="lawTitle" data-i="${i}" value="${esc(r.title)}" style="width:100%;margin:5px 0"><textarea class="lawValue" data-i="${i}" style="width:100%;min-height:72px;padding:9px;border:1px solid var(--line);border-radius:9px">${esc(r.value)}</textarea><div class="hint">${r.auto?'Automatische Teilprüfung vorgesehen/aktiv, soweit berechenbar.':'Dokumentations-/Hinweisregel.'}</div><button class="danger" onclick="deleteLawRule(${i})">Regel löschen</button></div>`).join('');
+ renderAttachments();
+}
+function saveLaw(){LAW.version=$("#lawVersion").value;LAW.validFrom=$("#lawValidFrom").value;$$('.lawEnabled').forEach(x=>LAW.rules[+x.dataset.i].enabled=x.checked);$$('.lawTitle').forEach(x=>LAW.rules[+x.dataset.i].title=x.value);$$('.lawValue').forEach(x=>LAW.rules[+x.dataset.i].value=x.value);persistLaw();$("#status").textContent="AZG/AZGV-Regelwerk gespeichert."}
+function deleteLawRule(i){if(confirm('Regel wirklich löschen?')){LAW.rules.splice(i,1);persistLaw();renderLawRules()}}
+function renderAttachments(){$("#attachmentList").innerHTML=ATTACHMENTS.length?ATTACHMENTS.map((a,i)=>`<div class="staffRow"><b>${esc(a.name)}</b><div class="hint">${esc(a.type||'Datei')} · hinzugefügt ${esc(a.addedAt||'')}</div><button class="danger" onclick="deleteAttachment(${i})">Entfernen</button></div>`).join(''):'<div class="hint">Noch keine lokalen Anhänge registriert.</div>'}
+function deleteAttachment(i){ATTACHMENTS.splice(i,1);persistLaw();renderAttachments()}
+
 
 function loadJSON(k, fallback){try{const x=localStorage.getItem(k);return x?JSON.parse(x):fallback}catch{return fallback}}
-function persist(){localStorage.setItem(STORE.staff,JSON.stringify(STAFF));localStorage.setItem(STORE.state,JSON.stringify(state));localStorage.setItem(STORE.rules,JSON.stringify(RULES));if(state.month)localStorage.setItem(STORE.month,state.month)}
+function persist(){localStorage.setItem(STORE.staff,JSON.stringify(STAFF));localStorage.setItem(STORE.state,JSON.stringify(state));localStorage.setItem(STORE.rules,JSON.stringify(RULES));localStorage.setItem("blm_shifts_v04",JSON.stringify(SHIFTS));if(state.month)localStorage.setItem(STORE.month,state.month)}
 function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
 function isoDate(y,m,d){return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`}
 function buildDays(monthStr){const[y,m]=monthStr.split("-").map(Number);const n=new Date(Date.UTC(y,m,0)).getUTCDate();return Array.from({length:n},(_,i)=>{const d=i+1,date=new Date(Date.UTC(y,m-1,d)),wd=date.getUTCDay();return{date:isoDate(y,m,d),day:d,wd,weekend:wd===0||wd===6}})}
@@ -161,17 +216,52 @@ $("#saveStaff").addEventListener("click",()=>{
  const roles=$$("#rolesGrid input:checked").map(x=>x.value);
  const p={name,roles,notes:$("#staffNotes").value.trim(),inactiveFrom:$("#staffInactiveFrom").value||"",disabled:$("#staffDisabled").checked};
  const i=Number($("#editIndex").value);
- if(i>=0) STAFF[i]=p; else STAFF.push(p);
+ if(i>=0){
+   const oldName=STAFF[i].name;
+   if(oldName!==name){
+     for(const bucket of ["plan","prefs","fixed","blocked"]){const obj=state[bucket]||{};Object.keys(obj).filter(k=>k.startsWith(oldName+"|")).forEach(k=>{obj[name+k.slice(oldName.length)]=obj[k];delete obj[k]})}
+   }
+   STAFF[i]=p;
+ } else STAFF.push(p);
  STAFF.sort((a,b)=>a.name.localeCompare(b.name,"de")); persist();resetStaffForm();renderStaff();renderPlan()
 })
 $("#cancelStaff").addEventListener("click",resetStaffForm)
 
-function renderShifts(){
- $("#shiftList").innerHTML=`<table style="margin-top:14px;width:100%;min-width:0"><thead><tr><th style="position:static">Schicht</th><th style="position:static">Zeit</th><th style="position:static">Typ</th></tr></thead><tbody>${SHIFTS.map(s=>`<tr><td>${esc(s.label)}</td><td>${esc(s.start||"–")}${s.end?"–"+esc(s.end):""}</td><td>${esc(s.required)}</td></tr>`).join("")}</tbody></table>`
-}
+function renderShifts(){ $("#shiftList").innerHTML=""; }
 function renderScheduleRules(){
  const labels={manual:"Manuell",daily:"Täglich",weekdays:"Mo–Fr",weekend:"Sa/So"};
- $("#scheduleRules").innerHTML=`<div class="schedulerWrap"><table style="width:100%;min-width:700px"><thead><tr><th style="position:static">Schicht</th><th style="position:static">Planung</th><th style="position:static">Anzahl</th></tr></thead><tbody>${SHIFTS.map(s=>{const r=RULES[s.code]||DEFAULT_RULES[s.code];return `<tr><td style="text-align:left">${esc(s.label)}</td><td><select class="ruleMode" data-code="${esc(s.code)}">${Object.entries(labels).map(([v,l])=>`<option value="${v}" ${r.mode===v?"selected":""}>${l}</option>`).join("")}</select></td><td><input class="ruleCount" data-code="${esc(s.code)}" type="number" min="1" max="9" value="${Number(r.count)||1}" style="width:70px"></td></tr>`}).join("")}</tbody></table></div>`;
+ $("#scheduleRules").innerHTML=SHIFTS.map(s=>{const r=RULES[s.code]||{mode:"manual",count:1};return `<div class="staffRow" style="margin-bottom:10px">
+ <div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><b>${esc(s.label)}</b><span class="tag">${esc(s.start||"–")}${s.end?"–"+esc(s.end):""}</span></div>
+ <div class="formgrid" style="margin-top:8px"><label>Planung<select class="ruleMode" data-code="${esc(s.code)}">${Object.entries(labels).map(([v,l])=>`<option value="${v}" ${r.mode===v?"selected":""}>${l}</option>`).join("")}</select></label>
+ <label>Anzahl<input class="ruleCount" data-code="${esc(s.code)}" type="number" min="1" max="9" value="${Number(r.count)||1}"></label></div>
+ <div class="rowactions"><button class="secondary" onclick="editShift('${esc(s.code)}')">Bearbeiten</button><button class="danger" onclick="deleteShift('${esc(s.code)}')">Löschen</button></div>
+ </div>`}).join("");
+}
+function slugCode(name){
+ let base=name.toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^A-Z0-9ÄÖÜ]+/g,"_").replace(/^_|_$/g,"")||"SCHICHT";
+ let code=base,n=2;while(SHIFTS.some(s=>s.code===code)){code=base+"_"+n++;}return code;
+}
+function resetShiftForm(){
+ $("#shiftEditCode").value="";$("#shiftName").value="";$("#shiftStart").value="";$("#shiftEnd").value="";$("#shiftMode").value="manual";$("#shiftCount").value="1";
+}
+window.editShift=code=>{
+ const s=SHIFTS.find(x=>x.code===code);if(!s)return;const r=RULES[code]||{mode:"manual",count:1};
+ $("#shiftEditCode").value=code;$("#shiftName").value=s.label||"";$("#shiftStart").value=s.start||"";$("#shiftEnd").value=s.end||"";$("#shiftMode").value=r.mode||"manual";$("#shiftCount").value=r.count||1;
+ $("#shiftName").scrollIntoView({behavior:"smooth",block:"center"});
+}
+window.deleteShift=code=>{
+ const s=SHIFTS.find(x=>x.code===code);if(!s||!confirm(`Schicht «${s.label}» wirklich löschen? Die Fähigkeit wird auch bei allen Mitarbeitern entfernt.`))return;
+ SHIFTS=SHIFTS.filter(x=>x.code!==code);delete RULES[code];STAFF.forEach(p=>p.roles=(p.roles||[]).filter(r=>r!==code));
+ Object.keys(state.plan||{}).forEach(k=>{if(state.plan[k]===code){delete state.plan[k];delete state.fixed[k];}});
+ persist();persistLaw();renderRolesGrid();renderStaff();renderScheduleRules();renderLawRules();renderPlan();resetShiftForm();
+}
+function saveShiftEditor(){
+ const name=$("#shiftName").value.trim();if(!name){alert("Bitte einen Schichtnamen eingeben.");return}
+ const edit=$("#shiftEditCode").value;let code=edit;
+ if(edit){const s=SHIFTS.find(x=>x.code===edit);if(!s)return;s.label=name;s.start=$("#shiftStart").value;s.end=$("#shiftEnd").value;}
+ else {code=slugCode(name);SHIFTS.push({code,label:name,start:$("#shiftStart").value,end:$("#shiftEnd").value,required:"manual"});}
+ RULES[code]={mode:$("#shiftMode").value,count:Math.max(1,Math.min(9,Number($("#shiftCount").value)||1))};
+ persist();renderRolesGrid();renderScheduleRules();renderStaff();renderPlan();resetShiftForm();$("#status").textContent="Schicht gespeichert.";
 }
 function saveRulesFromUI(){
  $$(".ruleMode").forEach(x=>{RULES[x.dataset.code]=RULES[x.dataset.code]||{};RULES[x.dataset.code].mode=x.value});
@@ -229,17 +319,26 @@ function exportCSV(){
  const csv=rows.map(r=>r.map(x=>`"${String(x??"").replaceAll('"','""')}"`).join(";")).join("\n");downloadBlob(csv,`BLM_Monatsplan_${state.month}.csv`,"text/csv;charset=utf-8")
 }
 function downloadBlob(content,name,type){const blob=new Blob([content],{type}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500)}
-function exportBackup(){const data={app:"BLM Grütschalp Monatsplaner",version:"0.3",exportedAt:new Date().toISOString(),staff:STAFF,state,rules:RULES};downloadBlob(JSON.stringify(data,null,2),`BLM_Backup_${new Date().toISOString().slice(0,10)}.json`,"application/json");$("#backupStatus").textContent="Backup exportiert. Datei privat aufbewahren und nicht ins öffentliche GitHub laden."}
-$("#backupImport").addEventListener("change",async e=>{const f=e.target.files[0];if(!f)return;try{const data=JSON.parse(await f.text());if(!Array.isArray(data.staff))throw new Error("Keine Mitarbeiterliste gefunden.");STAFF=data.staff;state=data.state||state;RULES=data.rules||RULES;persist();renderStaff();renderScheduleRules();renderPlan();$("#month").value=state.month||$("#month").value;$("#backupStatus").textContent=`Backup importiert: ${STAFF.length} Mitarbeiter.`}catch(err){alert("Backup konnte nicht importiert werden: "+err.message)}finally{e.target.value=""}})
+function exportBackup(){const data={app:"BLM Grütschalp Monatsplaner",version:"0.4",exportedAt:new Date().toISOString(),staff:STAFF,state,rules:RULES,shifts:SHIFTS,law:LAW,attachments:ATTACHMENTS};downloadBlob(JSON.stringify(data,null,2),`BLM_Backup_${new Date().toISOString().slice(0,10)}.json`,"application/json");$("#backupStatus").textContent="Backup exportiert. Datei privat aufbewahren und nicht ins öffentliche GitHub laden."}
+$("#backupImport").addEventListener("change",async e=>{const f=e.target.files[0];if(!f)return;try{const data=JSON.parse(await f.text());if(!Array.isArray(data.staff))throw new Error("Keine Mitarbeiterliste gefunden.");STAFF=data.staff;state=data.state||state;SHIFTS=data.shifts||SHIFTS;RULES=data.rules||RULES;if(data.law)LAW=data.law;if(Array.isArray(data.attachments))ATTACHMENTS=data.attachments;
+for(const s of SHIFTS)if(!RULES[s.code])RULES[s.code]={mode:"manual",count:1};
+persist();persistLaw();renderRolesGrid();renderStaff();renderScheduleRules();renderLawRules();renderPlan();$("#month").value=state.month||$("#month").value;$("#backupStatus").textContent=`Backup importiert: ${STAFF.length} Mitarbeiter.`}catch(err){alert("Backup konnte nicht importiert werden: "+err.message)}finally{e.target.value=""}})
 $("#backupExport").addEventListener("click",exportBackup);
+$("#saveShift").addEventListener("click",saveShiftEditor);
+$("#cancelShift").addEventListener("click",resetShiftForm);
 $("#saveRules").addEventListener("click",saveRulesFromUI);
-$("#resetRules").addEventListener("click",()=>{if(confirm("Standardregeln wiederherstellen?")){RULES=JSON.parse(JSON.stringify(DEFAULT_RULES));persist();renderScheduleRules();}});
-$("#wipeLocal").addEventListener("click",()=>{if(!confirm("Wirklich alle lokal gespeicherten Mitarbeiter- und Planungsdaten löschen?"))return;Object.values(STORE).forEach(k=>localStorage.removeItem(k));STAFF=[];state={month:"",days:[],plan:{},prefs:{},fixed:{},blocked:{}};resetStaffForm();renderStaff();renderPlan();$("#backupStatus").textContent="Lokale Daten gelöscht."})
+$("#resetRules").addEventListener("click",()=>{if(confirm("Standardregeln wiederherstellen?")){RULES=Object.fromEntries(SHIFTS.map(s=>[s.code,{...(DEFAULT_RULES[s.code]||{mode:"manual",count:1})}]));persist();renderScheduleRules();}});
+$("#wipeLocal").addEventListener("click",()=>{if(!confirm("Wirklich alle lokal gespeicherten Mitarbeiter- und Planungsdaten löschen?"))return;Object.values(STORE).forEach(k=>localStorage.removeItem(k));localStorage.removeItem("blm_shifts_v04");STAFF=[];state={month:"",days:[],plan:{},prefs:{},fixed:{},blocked:{}};resetStaffForm();renderStaff();renderPlan();$("#backupStatus").textContent="Lokale Daten gelöscht."})
 
 $$(".tabs button").forEach(b=>b.addEventListener("click",()=>{$$(".tabs button").forEach(x=>x.classList.toggle("active",x===b));$$(".tab").forEach(t=>t.classList.toggle("active",t.id===b.dataset.tab))}));
 $("#build").addEventListener("click",loadMonth);$("#auto").addEventListener("click",autoPlan);$("#repair").addEventListener("click",autoPlan);$("#clear").addEventListener("click",clearPlan);$("#export").addEventListener("click",exportCSV);
 
-renderRolesGrid();renderStaff();renderShifts();renderScheduleRules();
+
+$("#saveLawRules").addEventListener("click",saveLaw);
+$("#addLawRule").addEventListener("click",()=>{LAW.rules.push({id:"custom_"+Date.now(),title:"Neue Regel",value:"",enabled:true,auto:false});persistLaw();renderLawRules()});
+$("#attachmentInput").addEventListener("change",e=>{const f=e.target.files[0];if(!f)return;ATTACHMENTS.push({name:f.name,type:f.type,size:f.size,addedAt:new Date().toLocaleString('de-CH')});persistLaw();renderAttachments();e.target.value=""});
+
+renderRolesGrid();renderStaff();renderShifts();renderScheduleRules();renderLawRules();
 const now=new Date(), defaultMonth=localStorage.getItem(STORE.month)||`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}`;$("#month").value=state.month||defaultMonth;
 if(state.month&&state.days?.length)renderPlan();else loadMonth();
 </script>
