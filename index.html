@@ -41,7 +41,7 @@ td select{width:100%;min-height:28px;padding:2px 3px;border-radius:6px;font-size
 </style>
 </head>
 <body>
-<header><h1>BLM Grütschalp – Monatsplaner</h1><div class="sub">Privacy v0.5 · erweiterbare Dienste, Regeln & Dokumentation</div></header>
+<header><h1>BLM Grütschalp – Monatsplaner</h1><div class="sub">Privacy v0.6 · erweiterbare Dienste, Regeln & Dokumentation</div></header>
 <main>
 <div class="notice good"><b>Datenschutz:</b> Im Quellcode sind keine Mitarbeitendennamen oder Qualifikationen hinterlegt. Deine Daten werden nur lokal im Browser gespeichert. Erstelle regelmässig ein Backup.</div>
 <div class="notice">AZG/AZGV-Prüfung v0.5: Grundregeln aus den bereitgestellten Schulungsfolien sind als editierbares Regelwerk hinterlegt. Sonderfälle/Vereinbarungen bleiben prüfpflichtig.</div>
@@ -81,6 +81,14 @@ td select{width:100%;min-height:28px;padding:2px 3px;border-radius:6px;font-size
 <label>Inaktiv ab<input id="staffInactiveFrom" type="date"></label>
 <label style="flex-direction:row;align-items:center;margin-top:22px;color:var(--ink)"><input id="staffDisabled" type="checkbox" style="min-height:auto"> aktuell inaktiv</label>
 </div>
+<h3 style="font-size:14px;margin:14px 0 8px">Planungsvorgaben</h3>
+<div class="formgrid">
+<label style="flex-direction:row;align-items:center;color:var(--ink)"><input id="staffFreeWeekend" type="checkbox" style="min-height:auto" checked> mindestens 1 freies Wochenende/Monat</label>
+<label>FDN3 mindestens / Monat<input id="staffFDN3Min" type="number" min="0" max="31" value="0"></label>
+<label>FDN3 maximal / Monat<input id="staffFDN3Max" type="number" min="0" max="31" placeholder="leer = kein Maximum"></label>
+<label>Max. Arbeitstage nacheinander<input id="staffMaxConsecutive" type="number" min="1" max="31" placeholder="optional"></label>
+</div>
+<p class="hint">Diese Felder werden vom automatischen Planer berücksichtigt. Die freie Textnotiz bleibt zusätzlich für Hinweise.</p>
 <div class="rolesGrid" id="rolesGrid"></div>
 <div class="toolbar"><button id="saveStaff">Mitarbeiter speichern</button><button id="cancelStaff" class="secondary">Zurücksetzen</button></div>
 <p class="hint">Die Qualifikationen steuern, welche Schichten die automatische Planung grundsätzlich vergeben darf.</p>
@@ -194,16 +202,16 @@ function renderStaff(){
  $("#staffList").innerHTML=STAFF.map((p,i)=>`<div class="staffRow">
  <b>${esc(p.name)}</b>${p.disabled?' <span class="tag">inaktiv</span>':''}${p.inactiveFrom?` <span class="tag">ab ${esc(p.inactiveFrom)} inaktiv</span>`:''}
  <div class="tags">${(p.roles||[]).map(r=>`<span class="tag">${esc(r)}</span>`).join("")}</div>
- ${p.notes?`<div class="hint">${esc(p.notes)}</div>`:""}
+ ${p.notes?`<div class="hint">${esc(p.notes)}</div>`:""}<div class="tags">${p.rules?.freeWeekend!==false?`<span class="tag">1 freies WE/Monat</span>`:""}${p.rules?.fdn3Min?`<span class="tag">FDN3 min ${p.rules.fdn3Min}</span>`:""}${p.rules?.fdn3Max!=null?`<span class="tag">FDN3 max ${p.rules.fdn3Max}</span>`:""}</div>
  <div class="rowactions"><button class="secondary" onclick="editStaff(${i})">Bearbeiten</button><button class="danger" onclick="deleteStaff(${i})">Löschen</button></div>
  </div>`).join("")
 }
 function resetStaffForm(){
- $("#editIndex").value="-1";$("#staffName").value="";$("#staffNotes").value="";$("#staffInactiveFrom").value="";$("#staffDisabled").checked=false;
+ $("#editIndex").value="-1";$("#staffName").value="";$("#staffNotes").value="";$("#staffInactiveFrom").value="";$("#staffDisabled").checked=false;$("#staffFreeWeekend").checked=true;$("#staffFDN3Min").value="0";$("#staffFDN3Max").value="";$("#staffMaxConsecutive").value="";
  $$("#rolesGrid input").forEach(x=>x.checked=false)
 }
 window.editStaff=i=>{
- const p=STAFF[i];$("#editIndex").value=String(i);$("#staffName").value=p.name||"";$("#staffNotes").value=p.notes||"";$("#staffInactiveFrom").value=p.inactiveFrom||"";$("#staffDisabled").checked=!!p.disabled;
+ const p=STAFF[i];$("#editIndex").value=String(i);$("#staffName").value=p.name||"";$("#staffNotes").value=p.notes||"";$("#staffInactiveFrom").value=p.inactiveFrom||"";$("#staffDisabled").checked=!!p.disabled;$("#staffFreeWeekend").checked=p.rules?.freeWeekend!==false;$("#staffFDN3Min").value=p.rules?.fdn3Min??0;$("#staffFDN3Max").value=p.rules?.fdn3Max??"";$("#staffMaxConsecutive").value=p.rules?.maxConsecutive??"";
  const set=new Set(p.roles||[]);$$(".rolesGrid input").forEach(x=>x.checked=set.has(x.value));
  window.scrollTo({top:0,behavior:"smooth"})
 }
@@ -214,7 +222,7 @@ window.deleteStaff=i=>{
 $("#saveStaff").addEventListener("click",()=>{
  const name=$("#staffName").value.trim();if(!name){alert("Bitte einen Namen eingeben.");return}
  const roles=$$("#rolesGrid input:checked").map(x=>x.value);
- const p={name,roles,notes:$("#staffNotes").value.trim(),inactiveFrom:$("#staffInactiveFrom").value||"",disabled:$("#staffDisabled").checked};
+ const p={name,roles,notes:$("#staffNotes").value.trim(),inactiveFrom:$("#staffInactiveFrom").value||"",disabled:$("#staffDisabled").checked,rules:{freeWeekend:$("#staffFreeWeekend").checked,fdn3Min:Number($("#staffFDN3Min").value||0),fdn3Max:$("#staffFDN3Max").value===""?null:Number($("#staffFDN3Max").value),maxConsecutive:$("#staffMaxConsecutive").value===""?null:Number($("#staffMaxConsecutive").value)}};
  const i=Number($("#editIndex").value);
  if(i>=0){
    const oldName=STAFF[i].name;
@@ -292,11 +300,14 @@ function assignedFor(code,date){return STAFF.filter(p=>get(p.name,date)===code).
 function penalty(p,code,d){
  let score=0,k=key(p.name,d.date);if(state.prefs[k]||state.blocked[k])return 1e6;if(state.fixed[k]&&get(p.name,d.date)!==code)return 1e6;if(get(p.name,d.date)&&get(p.name,d.date)!==code)return 1e6;if(!canDo(p,code))return 1e6;
  const load=state.days.reduce((n,x)=>n+(get(p.name,x.date)?1:0),0);score+=load*3;
+ if(code==="FDN3"){const n=state.days.reduce((a,x)=>a+(get(p.name,x.date)==="FDN3"?1:0),0);if(p.rules?.fdn3Max!=null&&n>=p.rules.fdn3Max)return 1e6;if((p.rules?.fdn3Min||0)>n)score-=24;}
+ if(p.rules?.freeWeekend!==false){const idx=state.days.findIndex(x=>x.date===d.date);const isSat=d.wd===6,isSun=d.wd===0;if(isSat||isSun){let hasFree=false;for(let j=0;j<state.days.length-1;j++){const a=state.days[j],b=state.days[j+1];if(a.wd===6&&b.wd===0&&!get(p.name,a.date)&&!get(p.name,b.date)&&!state.fixed[key(p.name,a.date)]&&!state.fixed[key(p.name,b.date)]){hasFree=true;break}}if(!hasFree)score+=22;}}
  const note=(p.notes||"").toLowerCase();if(code==="FDN3"&&(note.includes("reserve")||note.includes("höchstens")||note.includes("bei bedarf")))score+=18;if(code==="5G"&&note.includes("nur"))score+=12;
  const idx=state.days.findIndex(x=>x.date===d.date);if(idx>0){const prev=get(p.name,state.days[idx-1].date);if(prev==="SPÄTKABINE"&&["FRÜHKABINE","FDN2","4G"].includes(code))score+=30}
  return score
 }
 function assign(code,d,targetOrdinal=1){if(assignedFor(code,d.date).length>=targetOrdinal)return true;const ranked=activeStaffFor(d.date).filter(p=>canDo(p,code)).map(p=>[penalty(p,code,d),p]).filter(x=>x[0]<1e6).sort((a,b)=>a[0]-b[0]||a[1].name.localeCompare(b[1].name,"de"));if(!ranked.length)return false;setv(ranked[0][1].name,d.date,code);return true}
+function staffGoalIssues(){const out=[];for(const p of STAFF.filter(x=>!x.disabled)){const r=p.rules||{};const f3=state.days.reduce((n,d)=>n+(get(p.name,d.date)==="FDN3"?1:0),0);if(r.fdn3Min&&f3<r.fdn3Min)out.push(`${p.name}: FDN3 Minimum ${r.fdn3Min} nicht erreicht (${f3})`);if(r.fdn3Max!=null&&f3>r.fdn3Max)out.push(`${p.name}: FDN3 Maximum ${r.fdn3Max} überschritten (${f3})`);if(r.freeWeekend!==false){let ok=false;for(let i=0;i<state.days.length-1;i++){const a=state.days[i],b=state.days[i+1];if(a.wd===6&&b.wd===0&&!get(p.name,a.date)&&!get(p.name,b.date)&&!state.blocked[key(p.name,a.date)]&&!state.blocked[key(p.name,b.date)]){ok=true;break}}if(!ok)out.push(`${p.name}: kein komplett freies Wochenende (Sa+So)`);}}return out}
 function autoPlan(){
  if(!state.days?.length)return;if(!STAFF.length){alert("Bitte zuerst Mitarbeiter erfassen.");return}
  for(const p of STAFF)for(const d of state.days){const k=key(p.name,d.date);if(!state.fixed[k])setv(p.name,d.date,"")}
@@ -305,7 +316,7 @@ function autoPlan(){
   if(i>0){const prev=state.days[i-1],prevFDN1=assignedFor("FDN1",prev.date)[0];if(prevFDN1){const p=STAFF.find(x=>x.name===prevFDN1),k=key(prevFDN1,d.date);if(p&&canDo(p,"FDN2")&&!state.prefs[k]&&!state.blocked[k]&&(!get(prevFDN1,d.date)||get(prevFDN1,d.date)==="FDN2"))setv(prevFDN1,d.date,"FDN2")}}
   const req=requiredCodesForDay(d),seen={};for(const code of req){seen[code]=(seen[code]||0)+1;if(!assign(code,d,seen[code]))issues.push(`${d.date}: ${code} (${seen[code]}) nicht besetzt`)}
  }
- persist();renderPlan();$("#status").textContent=issues.length?"Plan erstellt mit offenen Punkten:\n"+issues.join("\n"):"Plan erstellt. Bitte fachlich und AZG/AZGV-seitig prüfen."
+ persist();renderPlan();const goals=staffGoalIssues();const all=[...issues,...goals];$("#status").textContent=all.length?"Plan erstellt – offene Punkte / Planungsziele:\n"+all.join("\n"):"Plan erstellt. Alle hinterlegten Mitarbeiter-Planungsziele erfüllt. Bitte zusätzlich fachlich und AZG/AZGV-seitig prüfen."
 }
 function updateSummary(){if(!state.days?.length)return;$("#summary").textContent=`${state.days.length} Tage geladen\n${Object.keys(state.prefs||{}).length} Freiwünsche\n${Object.keys(state.fixed||{}).length} fixierte Felder\n${STAFF.filter(x=>!x.disabled).length} aktive Mitarbeiter`}
 function loadMonth(){
@@ -319,7 +330,7 @@ function exportCSV(){
  const csv=rows.map(r=>r.map(x=>`"${String(x??"").replaceAll('"','""')}"`).join(";")).join("\n");downloadBlob(csv,`BLM_Monatsplan_${state.month}.csv`,"text/csv;charset=utf-8")
 }
 function downloadBlob(content,name,type){const blob=new Blob([content],{type}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500)}
-function exportBackup(){const data={app:"BLM Grütschalp Monatsplaner",version:"0.4",exportedAt:new Date().toISOString(),staff:STAFF,state,rules:RULES,shifts:SHIFTS,law:LAW,attachments:ATTACHMENTS};downloadBlob(JSON.stringify(data,null,2),`BLM_Backup_${new Date().toISOString().slice(0,10)}.json`,"application/json");$("#backupStatus").textContent="Backup exportiert. Datei privat aufbewahren und nicht ins öffentliche GitHub laden."}
+function exportBackup(){const data={app:"BLM Grütschalp Monatsplaner",version:"0.6",exportedAt:new Date().toISOString(),staff:STAFF,state,rules:RULES,shifts:SHIFTS,law:LAW,attachments:ATTACHMENTS};downloadBlob(JSON.stringify(data,null,2),`BLM_Backup_${new Date().toISOString().slice(0,10)}.json`,"application/json");$("#backupStatus").textContent="Backup exportiert. Datei privat aufbewahren und nicht ins öffentliche GitHub laden."}
 $("#backupImport").addEventListener("change",async e=>{const f=e.target.files[0];if(!f)return;try{const data=JSON.parse(await f.text());if(!Array.isArray(data.staff))throw new Error("Keine Mitarbeiterliste gefunden.");STAFF=data.staff;state=data.state||state;SHIFTS=data.shifts||SHIFTS;RULES=data.rules||RULES;if(data.law)LAW=data.law;if(Array.isArray(data.attachments))ATTACHMENTS=data.attachments;
 for(const s of SHIFTS)if(!RULES[s.code])RULES[s.code]={mode:"manual",count:1};
 persist();persistLaw();renderRolesGrid();renderStaff();renderScheduleRules();renderLawRules();renderPlan();$("#month").value=state.month||$("#month").value;$("#backupStatus").textContent=`Backup importiert: ${STAFF.length} Mitarbeiter.`}catch(err){alert("Backup konnte nicht importiert werden: "+err.message)}finally{e.target.value=""}})
