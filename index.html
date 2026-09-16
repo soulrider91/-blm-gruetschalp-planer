@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>BLM Grütschalp – Monatsplaner</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#17313c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="BLM Planer">
+<link rel="apple-touch-icon" href="icon.svg">
+<style>
+:root{--bg:#f4f7f8;--card:#fff;--ink:#17313c;--muted:#6f7f86;--accent:#0b6b6f;--accent2:#244d66;--line:#d9e2e5;--warn:#a55d00;--bad:#a02a2a;--ok:#2f6f4e}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--ink)}
+header{background:linear-gradient(135deg,#17313c,#244d66);color:#fff;padding:18px 20px}
+h1{margin:0;font-size:22px}.sub{opacity:.82;margin-top:4px;font-size:13px}
+main{max-width:1400px;margin:auto;padding:16px}.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-bottom:14px}
+label{font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:5px}input,select,button,textarea{font:inherit}
+input,select,textarea{padding:9px 10px;border:1px solid var(--line);border-radius:9px;background:#fff;min-height:40px}
+button{border:0;border-radius:9px;padding:10px 13px;background:var(--accent);color:#fff;cursor:pointer}
+button.secondary{background:#e7eef0;color:var(--ink)}button.warn{background:#8b5a13}button.danger{background:#922}button:disabled{opacity:.5}
+.grid{display:grid;grid-template-columns:300px 1fr;gap:14px}.panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;min-width:0}
+.panel h2{font-size:16px;margin:0 0 10px}.hint{font-size:12px;color:var(--muted);line-height:1.45}
+.staffList{max-height:620px;overflow:auto;border-top:1px solid var(--line)}.staffRow{padding:10px 4px;border-bottom:1px solid var(--line)}
+.staffRow b{font-size:13px}.tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}.tag{font-size:10px;padding:2px 6px;border-radius:999px;background:#edf3f4}
+.schedulerWrap{overflow:auto;border:1px solid var(--line);border-radius:10px}table{border-collapse:separate;border-spacing:0;width:max-content;min-width:100%}
+th,td{border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:4px;text-align:center;font-size:11px;min-width:54px;height:34px}
+th{background:#edf3f4;position:sticky;top:0;z-index:2}th:first-child,td:first-child{position:sticky;left:0;z-index:1;background:#fff;min-width:175px;text-align:left;padding-left:8px}
+th:first-child{z-index:3;background:#edf3f4}td.weekend{background:#faf4e8}td.pref{background:#f8e7e7}td.fixed{outline:2px solid #6b7d85;outline-offset:-2px}
+td select{width:100%;min-height:28px;padding:2px 3px;border-radius:6px;font-size:10px;border:1px solid transparent;background:transparent}
+.legend{display:flex;flex-wrap:wrap;gap:10px;font-size:11px;margin:10px 0;color:var(--muted)}.dot{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+.status{margin-top:10px;padding:10px;border-radius:10px;background:#eef4f5;font-size:12px;white-space:pre-wrap}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}.tabs button{background:#e7eef0;color:var(--ink)}.tabs button.active{background:var(--accent);color:#fff}
+.tab{display:none}.tab.active{display:block}.formgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}.small{font-size:11px}
+.notice{padding:10px;border-left:4px solid var(--warn);background:#fff7eb;border-radius:8px;font-size:12px;margin:10px 0}
+.good{border-left-color:var(--ok);background:#edf7f0}.rowactions{display:flex;gap:6px;margin-top:6px}.rolesGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:6px;margin:8px 0}
+.rolecheck{display:flex;flex-direction:row;align-items:center;gap:7px;color:var(--ink);font-size:12px}.rolecheck input{min-height:auto}
+.fileBtn{display:inline-block;padding:10px 13px;border-radius:9px;background:#e7eef0;color:var(--ink);cursor:pointer;font-size:14px}.fileBtn input{display:none}
+@media(max-width:900px){.grid{grid-template-columns:1fr}.staffList{max-height:360px}}
+</style>
+</head>
+<body>
+<header><h1>BLM Grütschalp – Monatsplaner</h1><div class="sub">Privacy v0.2 · Personaldaten nur lokal auf diesem Gerät</div></header>
+<main>
+<div class="notice good"><b>Datenschutz:</b> Im Quellcode sind keine Mitarbeitendennamen oder Qualifikationen hinterlegt. Deine Daten werden nur lokal im Browser gespeichert. Erstelle regelmässig ein Backup.</div>
+<div class="notice">AZG/AZGV ist noch nicht vollständig automatisiert. Der erzeugte Monatsplan bleibt ein Entwurf und muss vor der Übernahme ins offizielle System geprüft werden.</div>
+<div class="tabs">
+<button class="active" data-tab="plan">Monatsplan</button>
+<button data-tab="staff">Mitarbeiter</button>
+<button data-tab="backup">Backup</button>
+<button data-tab="rules">Schichten & Regeln</button>
+</div>
+
+<section id="plan" class="tab active">
+<div class="toolbar">
+<label>Monat<input id="month" type="month"></label>
+<button id="build">Monat laden</button>
+<button id="auto">Automatisch planen</button>
+<button id="repair" class="warn">Rest neu planen</button>
+<button id="clear" class="secondary">Plan leeren</button>
+<button id="export" class="secondary">CSV exportieren</button>
+</div>
+<div class="grid">
+<aside class="panel"><h2>Vorplanung</h2>
+<p class="hint">Pro Mitarbeiter sind bis zu 4 Freiwünsche möglich. Fixe Dienste, Urlaub, Krankheit, Schule oder andere Sperren kannst du direkt in den Feldern setzen. Manuell geänderte Felder bleiben beim «Rest neu planen» fixiert.</p>
+<div class="legend"><span><i class="dot" style="background:#f8e7e7"></i>Freiwunsch</span><span><i class="dot" style="background:#faf4e8"></i>Wochenende</span><span><i class="dot" style="background:#dfe6e8"></i>Fixiert</span></div>
+<div id="summary" class="status">Noch kein Monat geladen.</div></aside>
+<div class="panel"><h2>Plan</h2><div id="tableWrap" class="schedulerWrap"></div><div id="status" class="status">Bereit.</div></div>
+</div></section>
+
+<section id="staff" class="tab">
+<div class="grid">
+<div class="panel">
+<h2>Mitarbeiter hinzufügen / bearbeiten</h2>
+<input id="editIndex" type="hidden" value="-1">
+<div class="formgrid">
+<label>Name<input id="staffName" autocomplete="off"></label>
+<label>Notiz<input id="staffNotes" placeholder="z.B. Reserve, max. 1×/Monat"></label>
+<label>Inaktiv ab<input id="staffInactiveFrom" type="date"></label>
+<label style="flex-direction:row;align-items:center;margin-top:22px;color:var(--ink)"><input id="staffDisabled" type="checkbox" style="min-height:auto"> aktuell inaktiv</label>
+</div>
+<div class="rolesGrid" id="rolesGrid"></div>
+<div class="toolbar"><button id="saveStaff">Mitarbeiter speichern</button><button id="cancelStaff" class="secondary">Zurücksetzen</button></div>
+<p class="hint">Die Qualifikationen steuern, welche Schichten die automatische Planung grundsätzlich vergeben darf.</p>
+</div>
+<div class="panel"><h2>Lokale Mitarbeiterliste</h2><div id="staffList" class="staffList"></div></div>
+</div></section>
+
+<section id="backup" class="tab">
+<div class="panel">
+<h2>Datensicherung</h2>
+<p class="hint">Diese Sicherung enthält Personaldaten und Planungsdaten. Bewahre sie privat auf und lade sie nicht in das öffentliche GitHub-Repository.</p>
+<div class="toolbar">
+<button id="backupExport">Backup als JSON exportieren</button>
+<label class="fileBtn">Backup importieren<input id="backupImport" type="file" accept=".json,application/json"></label>
+<button id="wipeLocal" class="danger">Lokale Daten löschen</button>
+</div>
+<div id="backupStatus" class="status">Noch kein Backup erstellt.</div>
+</div></section>
+
+<section id="rules" class="tab"><div class="panel">
+<h2>Schichten & Grundlogik</h2>
+<div class="formgrid">
+<div><b>Täglich automatisch</b><p class="small">Frühkabine, Spätkabine, Schalter Lauterbrunnen, Schalter Mürren, 4G, 5G, 6G, FDN1, FDN2, FDN3.</p></div>
+<div><b>Wochenende zusätzlich</b><p class="small">1 Wärter Lauterbrunnen + 1 Wärter Mürren pro Samstag/Sonntag.</p></div>
+<div><b>Manuell vorab</b><p class="small">US, Werkstatt, Büro, Reinigung, Küche, Güter, Schule und weitere Spezialdienste.</p></div>
+<div><b>Dienstfolge</b><p class="small">FDN1 → am Folgetag FDN2 für dieselbe Person. Spät → Früh wird möglichst vermieden.</p></div>
+</div><div id="shiftList"></div></div></section>
+</main>
+
+<script>
+const SHIFTS = [{"code": "FRÜHKABINE", "label": "Frühkabine", "start": "", "end": "", "required": "daily"}, {"code": "SPÄTKABINE", "label": "Spätkabine", "start": "", "end": "", "required": "daily"}, {"code": "SCHALTER_LB", "label": "Schalter Lauterbrunnen", "start": "", "end": "", "required": "daily"}, {"code": "SCHALTER_MU", "label": "Schalter Mürren", "start": "", "end": "", "required": "daily"}, {"code": "4G", "label": "4G", "start": "07:13", "end": "16:36", "required": "daily"}, {"code": "5G", "label": "5G", "start": "08:40", "end": "18:13", "required": "daily"}, {"code": "6G", "label": "6G", "start": "09:30", "end": "18:43", "required": "daily"}, {"code": "FDN1", "label": "Fahrdienst 1 / Übernachtung", "start": "11:09", "end": "20:50", "required": "daily"}, {"code": "FDN2", "label": "Fahrdienst 2", "start": "05:50", "end": "14:30", "required": "daily"}, {"code": "FDN3", "label": "Fahrdienst 3", "start": "09:10", "end": "18:45", "required": "daily"}, {"code": "WÄRTER_LB", "label": "Wochenend-Wärter Lauterbrunnen", "start": "", "end": "", "required": "weekend"}, {"code": "WÄRTER_MU", "label": "Wochenend-Wärter Mürren", "start": "", "end": "", "required": "weekend"}, {"code": "US", "label": "Unterhalt Strecke", "start": "", "end": "", "required": "manual"}, {"code": "WG", "label": "Werkstatt", "start": "07:06", "end": "15:43", "required": "manual"}, {"code": "BÜRO", "label": "Büro", "start": "08:06", "end": "16:43", "required": "manual"}, {"code": "ABL", "label": "ABL", "start": "11:43", "end": "20:40", "required": "manual"}, {"code": "BL", "label": "BL", "start": "05:55", "end": "14:43", "required": "manual"}, {"code": "L42", "label": "Güter Lauterbrunnen L42", "start": "05:45", "end": "15:45", "required": "manual"}, {"code": "L43", "label": "Güter Lauterbrunnen L43", "start": "08:00", "end": "17:25", "required": "manual"}, {"code": "GÜTER_MU", "label": "Güter Mürren", "start": "", "end": "", "required": "manual"}, {"code": "KÜCHE", "label": "Küche", "start": "", "end": "", "required": "manual"}, {"code": "REINIGUNG", "label": "Reinigung", "start": "", "end": "", "required": "manual"}, {"code": "SCHULE", "label": "Schule", "start": "", "end": "", "required": "manual"}];
+const STORE = {staff:"blm_staff_v02", month:"blm_month_v02", state:"blm_state_v02"};
+let STAFF = loadJSON(STORE.staff, []);
+let state = loadJSON(STORE.state, {month:"",days:[],plan:{},prefs:{},fixed:{},blocked:{}});
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const byCode=Object.fromEntries(SHIFTS.map(s=>[s.code,s]));
+const daily=SHIFTS.filter(s=>s.required==="daily").map(s=>s.code);
+const weekend=SHIFTS.filter(s=>s.required==="weekend").map(s=>s.code);
+
+function loadJSON(k, fallback){try{const x=localStorage.getItem(k);return x?JSON.parse(x):fallback}catch{return fallback}}
+function persist(){localStorage.setItem(STORE.staff,JSON.stringify(STAFF));localStorage.setItem(STORE.state,JSON.stringify(state));if(state.month)localStorage.setItem(STORE.month,state.month)}
+function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
+function isoDate(y,m,d){return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`}
+function buildDays(monthStr){const[y,m]=monthStr.split("-").map(Number);const n=new Date(Date.UTC(y,m,0)).getUTCDate();return Array.from({length:n},(_,i)=>{const d=i+1,date=new Date(Date.UTC(y,m-1,d)),wd=date.getUTCDay();return{date:isoDate(y,m,d),day:d,wd,weekend:wd===0||wd===6}})}
+function key(name,date){return name+"|"+date} function get(name,date){return state.plan[key(name,date)]||""} function setv(name,date,val){if(val)state.plan[key(name,date)]=val;else delete state.plan[key(name,date)]}
+function activeStaffFor(dateStr){return STAFF.filter(p=>!p.disabled&&!(p.inactiveFrom&&dateStr>=p.inactiveFrom))}
+function canDo(p,role){return Array.isArray(p.roles)&&p.roles.includes(role)}
+
+function renderRolesGrid(){
+ $("#rolesGrid").innerHTML=SHIFTS.map(s=>`<label class="rolecheck"><input type="checkbox" value="${esc(s.code)}">${esc(s.label)}</label>`).join("")
+}
+function renderStaff(){
+ if(!STAFF.length){$("#staffList").innerHTML='<div class="notice">Noch keine Mitarbeiter gespeichert. Du kannst sie links hinzufügen oder im Reiter «Backup» eine private Sicherung importieren.</div>';return}
+ $("#staffList").innerHTML=STAFF.map((p,i)=>`<div class="staffRow">
+ <b>${esc(p.name)}</b>${p.disabled?' <span class="tag">inaktiv</span>':''}${p.inactiveFrom?` <span class="tag">ab ${esc(p.inactiveFrom)} inaktiv</span>`:''}
+ <div class="tags">${(p.roles||[]).map(r=>`<span class="tag">${esc(r)}</span>`).join("")}</div>
+ ${p.notes?`<div class="hint">${esc(p.notes)}</div>`:""}
+ <div class="rowactions"><button class="secondary" onclick="editStaff(${i})">Bearbeiten</button><button class="danger" onclick="deleteStaff(${i})">Löschen</button></div>
+ </div>`).join("")
+}
+function resetStaffForm(){
+ $("#editIndex").value="-1";$("#staffName").value="";$("#staffNotes").value="";$("#staffInactiveFrom").value="";$("#staffDisabled").checked=false;
+ $$("#rolesGrid input").forEach(x=>x.checked=false)
+}
+window.editStaff=i=>{
+ const p=STAFF[i];$("#editIndex").value=String(i);$("#staffName").value=p.name||"";$("#staffNotes").value=p.notes||"";$("#staffInactiveFrom").value=p.inactiveFrom||"";$("#staffDisabled").checked=!!p.disabled;
+ const set=new Set(p.roles||[]);$$(".rolesGrid input").forEach(x=>x.checked=set.has(x.value));
+ window.scrollTo({top:0,behavior:"smooth"})
+}
+window.deleteStaff=i=>{
+ if(!confirm("Diesen Mitarbeiter wirklich löschen? Planfelder mit diesem Namen bleiben im Backup erhalten, werden aber nicht mehr angezeigt."))return;
+ STAFF.splice(i,1);persist();renderStaff();renderPlan()
+}
+$("#saveStaff").addEventListener("click",()=>{
+ const name=$("#staffName").value.trim();if(!name){alert("Bitte einen Namen eingeben.");return}
+ const roles=$$("#rolesGrid input:checked").map(x=>x.value);
+ const p={name,roles,notes:$("#staffNotes").value.trim(),inactiveFrom:$("#staffInactiveFrom").value||"",disabled:$("#staffDisabled").checked};
+ const i=Number($("#editIndex").value);
+ if(i>=0) STAFF[i]=p; else STAFF.push(p);
+ STAFF.sort((a,b)=>a.name.localeCompare(b.name,"de")); persist();resetStaffForm();renderStaff();renderPlan()
+})
+$("#cancelStaff").addEventListener("click",resetStaffForm)
+
+function renderShifts(){
+ $("#shiftList").innerHTML=`<table style="margin-top:14px;width:100%;min-width:0"><thead><tr><th style="position:static">Schicht</th><th style="position:static">Zeit</th><th style="position:static">Typ</th></tr></thead><tbody>${SHIFTS.map(s=>`<tr><td>${esc(s.label)}</td><td>${esc(s.start||"–")}${s.end?"–"+esc(s.end):""}</td><td>${esc(s.required)}</td></tr>`).join("")}</tbody></table>`
+}
+function modeOptions(p){const opts=["","FREI","GESPERRT",...(p.roles||[])];return[...new Set(opts)].map(v=>`<option value="${esc(v)}">${v===""?"—":esc(v)}</option>`).join("")}
+function renderPlan(){
+ if(!state.days?.length){$("#tableWrap").innerHTML='<div class="notice">Bitte zuerst einen Monat laden.</div>';return}
+ if(!STAFF.filter(x=>!x.disabled).length){$("#tableWrap").innerHTML='<div class="notice">Noch keine aktiven Mitarbeiter vorhanden. Bitte zuerst im Reiter «Mitarbeiter» Personal erfassen oder ein Backup importieren.</div>';updateSummary();return}
+ let html=`<table><thead><tr><th>Mitarbeiter</th>${state.days.map(d=>`<th>${d.day}<br>${["So","Mo","Di","Mi","Do","Fr","Sa"][d.wd]}</th>`).join("")}</tr></thead><tbody>`;
+ for(const p of STAFF.filter(x=>!x.disabled)){html+=`<tr><td><b>${esc(p.name)}</b></td>`;for(const d of state.days){const k=key(p.name,d.date);const cls=[d.weekend?"weekend":"",state.prefs[k]?"pref":"",state.fixed[k]?"fixed":""].filter(Boolean).join(" ");html+=`<td class="${cls}"><select data-name="${esc(p.name)}" data-date="${d.date}">${modeOptions(p)}</select></td>`}html+="</tr>"}
+ html+="</tbody></table>";$("#tableWrap").innerHTML=html;
+ $$("#tableWrap select").forEach(sel=>{const k=key(sel.dataset.name,sel.dataset.date);sel.value=state.prefs[k]?"FREI":state.blocked[k]?"GESPERRT":get(sel.dataset.name,sel.dataset.date);sel.addEventListener("change",()=>handleCell(sel))});updateSummary()
+}
+function handleCell(sel){
+ const name=sel.dataset.name,date=sel.dataset.date,k=key(name,date),v=sel.value;delete state.prefs[k];delete state.blocked[k];
+ if(v==="FREI"){const count=Object.keys(state.prefs).filter(x=>x.startsWith(name+"|")).length;if(count>=4){sel.value=get(name,date)||"";alert("Maximal 4 Freiwünsche pro Mitarbeiter.");return}state.prefs[k]=true;setv(name,date,"");state.fixed[k]=true}
+ else if(v==="GESPERRT"){state.blocked[k]=true;setv(name,date,"");state.fixed[k]=true}
+ else if(v){setv(name,date,v);state.fixed[k]=true}
+ else{setv(name,date,"");delete state.fixed[k]}
+ persist();renderPlan()
+}
+function assignedFor(code,date){return STAFF.filter(p=>get(p.name,date)===code).map(p=>p.name)}
+function penalty(p,code,d){
+ let score=0,k=key(p.name,d.date);if(state.prefs[k]||state.blocked[k])return 1e6;if(state.fixed[k]&&get(p.name,d.date)!==code)return 1e6;if(get(p.name,d.date)&&get(p.name,d.date)!==code)return 1e6;if(!canDo(p,code))return 1e6;
+ const load=state.days.reduce((n,x)=>n+(get(p.name,x.date)?1:0),0);score+=load*3;
+ const note=(p.notes||"").toLowerCase();if(code==="FDN3"&&(note.includes("reserve")||note.includes("höchstens")||note.includes("bei bedarf")))score+=18;if(code==="5G"&&note.includes("nur"))score+=12;
+ const idx=state.days.findIndex(x=>x.date===d.date);if(idx>0){const prev=get(p.name,state.days[idx-1].date);if(prev==="SPÄTKABINE"&&["FRÜHKABINE","FDN2","4G"].includes(code))score+=30}
+ return score
+}
+function assign(code,d){if(assignedFor(code,d.date).length)return true;const ranked=activeStaffFor(d.date).filter(p=>canDo(p,code)).map(p=>[penalty(p,code,d),p]).filter(x=>x[0]<1e6).sort((a,b)=>a[0]-b[0]||a[1].name.localeCompare(b[1].name,"de"));if(!ranked.length)return false;setv(ranked[0][1].name,d.date,code);return true}
+function autoPlan(){
+ if(!state.days?.length)return;if(!STAFF.length){alert("Bitte zuerst Mitarbeiter erfassen.");return}
+ for(const p of STAFF)for(const d of state.days){const k=key(p.name,d.date);if(!state.fixed[k])setv(p.name,d.date,"")}
+ let issues=[];
+ for(let i=0;i<state.days.length;i++){const d=state.days[i];
+  if(i>0){const prev=state.days[i-1],prevFDN1=assignedFor("FDN1",prev.date)[0];if(prevFDN1){const p=STAFF.find(x=>x.name===prevFDN1),k=key(prevFDN1,d.date);if(p&&canDo(p,"FDN2")&&!state.prefs[k]&&!state.blocked[k]&&(!get(prevFDN1,d.date)||get(prevFDN1,d.date)==="FDN2"))setv(prevFDN1,d.date,"FDN2")}}
+  const req=[...daily,...(d.weekend?weekend:[])];for(const code of req)if(!assign(code,d))issues.push(`${d.date}: ${code} nicht besetzt`)
+ }
+ persist();renderPlan();$("#status").textContent=issues.length?"Plan erstellt mit offenen Punkten:\n"+issues.join("\n"):"Plan erstellt. Bitte fachlich und AZG/AZGV-seitig prüfen."
+}
+function updateSummary(){if(!state.days?.length)return;$("#summary").textContent=`${state.days.length} Tage geladen\n${Object.keys(state.prefs||{}).length} Freiwünsche\n${Object.keys(state.fixed||{}).length} fixierte Felder\n${STAFF.filter(x=>!x.disabled).length} aktive Mitarbeiter`}
+function loadMonth(){
+ const m=$("#month").value;if(!m)return;
+ if(state.month===m&&state.days?.length){renderPlan();$("#status").textContent="Gespeicherten Monat geladen.";return}
+ state={month:m,days:buildDays(m),plan:{},prefs:{},fixed:{},blocked:{}};persist();renderPlan();$("#status").textContent="Monat geladen. Freiwünsche und fixe Einsätze eintragen, danach automatisch planen."
+}
+function clearPlan(){if(!state.days?.length)return;for(const p of STAFF)for(const d of state.days){const k=key(p.name,d.date);if(!state.fixed[k])delete state.plan[k]}persist();renderPlan()}
+function exportCSV(){
+ if(!state.days?.length)return;const rows=[["Mitarbeiter",...state.days.map(d=>d.date)]];for(const p of STAFF.filter(x=>!x.disabled))rows.push([p.name,...state.days.map(d=>state.prefs[key(p.name,d.date)]?"FREI":state.blocked[key(p.name,d.date)]?"GESPERRT":get(p.name,d.date))]);
+ const csv=rows.map(r=>r.map(x=>`"${String(x??"").replaceAll('"','""')}"`).join(";")).join("\n");downloadBlob(csv,`BLM_Monatsplan_${state.month}.csv`,"text/csv;charset=utf-8")
+}
+function downloadBlob(content,name,type){const blob=new Blob([content],{type}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500)}
+function exportBackup(){const data={app:"BLM Grütschalp Monatsplaner",version:"0.2",exportedAt:new Date().toISOString(),staff:STAFF,state};downloadBlob(JSON.stringify(data,null,2),`BLM_Backup_${new Date().toISOString().slice(0,10)}.json`,"application/json");$("#backupStatus").textContent="Backup exportiert. Datei privat aufbewahren und nicht ins öffentliche GitHub laden."}
+$("#backupImport").addEventListener("change",async e=>{const f=e.target.files[0];if(!f)return;try{const data=JSON.parse(await f.text());if(!Array.isArray(data.staff))throw new Error("Keine Mitarbeiterliste gefunden.");STAFF=data.staff;state=data.state||state;persist();renderStaff();renderPlan();$("#month").value=state.month||$("#month").value;$("#backupStatus").textContent=`Backup importiert: ${STAFF.length} Mitarbeiter.`}catch(err){alert("Backup konnte nicht importiert werden: "+err.message)}finally{e.target.value=""}})
+$("#backupExport").addEventListener("click",exportBackup);
+$("#wipeLocal").addEventListener("click",()=>{if(!confirm("Wirklich alle lokal gespeicherten Mitarbeiter- und Planungsdaten löschen?"))return;Object.values(STORE).forEach(k=>localStorage.removeItem(k));STAFF=[];state={month:"",days:[],plan:{},prefs:{},fixed:{},blocked:{}};resetStaffForm();renderStaff();renderPlan();$("#backupStatus").textContent="Lokale Daten gelöscht."})
+
+$$(".tabs button").forEach(b=>b.addEventListener("click",()=>{$$(".tabs button").forEach(x=>x.classList.toggle("active",x===b));$$(".tab").forEach(t=>t.classList.toggle("active",t.id===b.dataset.tab))}));
+$("#build").addEventListener("click",loadMonth);$("#auto").addEventListener("click",autoPlan);$("#repair").addEventListener("click",autoPlan);$("#clear").addEventListener("click",clearPlan);$("#export").addEventListener("click",exportCSV);
+
+renderRolesGrid();renderStaff();renderShifts();
+const now=new Date(), defaultMonth=localStorage.getItem(STORE.month)||`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}`;$("#month").value=state.month||defaultMonth;
+if(state.month&&state.days?.length)renderPlan();else loadMonth();
+</script>
+<script>if("serviceWorker"in navigator&&location.protocol.startsWith("http"))navigator.serviceWorker.register("./sw.js").catch(()=>{});</script>
+</body></html>
